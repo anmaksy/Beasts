@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Beasts.Api;
 using Beasts.Data;
@@ -22,14 +21,21 @@ public partial class Beasts : BaseSettingsPlugin<BeastsSettings>
 
     private async Task FetchPrices()
     {
-        DebugWindow.LogMsg("Fetching Beast Prices from PoeNinja...");
-        var prices = await PoeNinja.GetBeastsPrices();
-        foreach (var beast in BeastsDatabase.AllBeasts)
+        try
         {
-            Settings.BeastPrices[beast.DisplayName] = prices.TryGetValue(beast.DisplayName, out var price) ? price : -1;
-        }
+            DebugWindow.LogMsg("Fetching Beast Prices from PoeNinja...");
+            var prices = await PoeNinja.GetBeastsPrices();
+            foreach (var beast in BeastsDatabase.AllBeasts)
+            {
+                Settings.BeastPrices[beast.DisplayName] = prices.TryGetValue(beast.DisplayName, out var price) ? price : -1;
+            }
 
-        Settings.LastUpdate = DateTime.Now;
+            Settings.LastUpdate = DateTime.Now;
+        }
+        catch (Exception e)
+        {
+            DebugWindow.LogError($"Failed to fetch Beast Prices from PoeNinja: {e.Message}");
+        }
     }
 
     public override void AreaChange(AreaInstance area)
@@ -40,17 +46,14 @@ public partial class Beasts : BaseSettingsPlugin<BeastsSettings>
     public override void EntityAdded(Entity entity)
     {
         if (entity.Rarity != MonsterRarity.Rare) return;
-        foreach (var _ in BeastsDatabase.AllBeasts.Where(beast => entity.Metadata == beast.Path))
+        if (BeastsDatabase.ByPath.ContainsKey(entity.Metadata))
         {
-            _trackedBeasts.Add(entity.Id, entity);
+            _trackedBeasts[entity.Id] = entity;
         }
     }
 
     public override void EntityRemoved(Entity entity)
     {
-        if (_trackedBeasts.ContainsKey(entity.Id))
-        {
-            _trackedBeasts.Remove(entity.Id);
-        }
+        _trackedBeasts.Remove(entity.Id);
     }
 }

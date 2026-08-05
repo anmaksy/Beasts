@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -8,7 +9,23 @@ namespace Beasts.Api;
 
 public static class PoeNinja
 {
-    private static readonly string PoeNinjaUrl = "https://poe.ninja/api/data/itemoverview?league=Keepers&type=Beast";
+    private const string LeaguesUrl = "https://poe.ninja/poe1/api/economy/leagues";
+    private const string ItemOverviewUrl = "https://poe.ninja/poe1/api/economy/stash/current/item/overview";
+
+    private static readonly HttpClient SharedHttpClient = CreateHttpClient();
+
+    private static HttpClient CreateHttpClient()
+    {
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "Beasts-ExileCore-Plugin/1.0 (+https://github.com/exApiTools/ExileApi-Compiled)");
+        return client;
+    }
+
+    private class PoeNinjaLeague
+    {
+        [JsonProperty("id")] public string Id;
+    }
 
     private class PoeNinjaLine
     {
@@ -21,15 +38,41 @@ public static class PoeNinja
         [JsonProperty("lines")] public List<PoeNinjaLine> Lines;
     }
 
-    public static async Task<Dictionary<string, float>> GetBeastsPrices()
+    private static async Task<string> GetCurrentLeague()
     {
-        using var httpClient = new HttpClient();
-        var response = await httpClient.GetAsync(PoeNinjaUrl);
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException("Failed to get poe.ninja response");
+        var response = await SharedHttpClient.GetAsync(LeaguesUrl);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Failed to get poe.ninja leagues (status {(int)response.StatusCode})");
 
         var json = await response.Content.ReadAsStringAsync();
-        var poeNinjaResponse = JsonConvert.DeserializeObject<PoeNinjaResponse>(json);
+        var league = JsonConvert.DeserializeObject<List<PoeNinjaLeague>>(json)
+            ?.FirstOrDefault(l => !string.IsNullOrEmpty(l.Id));
 
-        return poeNinjaResponse.Lines.ToDictionary(line => line.Name, line => line.ChaosValue);
+        if (league == null) throw new HttpRequestException("poe.ninja returned no active leagues");
+
+        return league.Id;
+    }
+
+    public static async Task<Dictionary<string, float>> GetBeastsPrices()
+    {
+        var league = await GetCurrentLeague();
+
+        var response = await SharedHttpClient.GetAsync(
+            $"{ItemOverviewUrl}?league={Uri.EscapeDataString(league)}&type=Beast");
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Failed to get poe.ninja beast prices (status {(int)response.StatusCode})");
+
+        var json = await response.Content.ReadAsStringAsync();
+        var lines = JsonConvert.DeserializeObject<PoeNinjaResponse>(json)?.Lines;
+        if (lines == null) throw new HttpRequestException("poe.ninja returned an unexpected response");
+
+        var prices = new Dictionary<string, float>();
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrEmpty(line.Name)) continue;
+            prices[line.Name] = line.ChaosValue;
+        }
+
+        return prices;
     }
 }

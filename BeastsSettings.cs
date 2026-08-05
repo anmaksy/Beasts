@@ -48,14 +48,14 @@ public class BeastsSettings : ISettings
                                 ? [.. sortedBeasts.OrderBy(b => Beasts.Any(eb => eb.Path == b.Path))]
                                 : [.. sortedBeasts.OrderByDescending(b => Beasts.Any(eb => eb.Path == b.Path))],
                             1 => sortAscending
-                                ? [.. sortedBeasts.OrderBy(b => BeastPrices[b.DisplayName])]
-                                : [.. sortedBeasts.OrderByDescending(b => BeastPrices[b.DisplayName])],
+                                ? [.. sortedBeasts.OrderBy(b => BeastPrices.GetValueOrDefault(b.DisplayName, -1))]
+                                : [.. sortedBeasts.OrderByDescending(b => BeastPrices.GetValueOrDefault(b.DisplayName, -1))],
                             2 => sortAscending
                                 ? [.. sortedBeasts.OrderBy(b => b.DisplayName)]
                                 : [.. sortedBeasts.OrderByDescending(x => x.DisplayName)],
                             3 => sortAscending
-                                ? [.. sortedBeasts.OrderBy(b => b.Crafts[0])]
-                                : [.. sortedBeasts.OrderByDescending(x => x.Crafts[0])],
+                                ? [.. sortedBeasts.OrderBy(b => b.Crafts.FirstOrDefault() ?? "")]
+                                : [.. sortedBeasts.OrderByDescending(x => x.Crafts.FirstOrDefault() ?? "")],
                             _ => sortAscending
                                 ? [.. sortedBeasts.OrderBy(b => b.DisplayName)]
                                 : [.. sortedBeasts.OrderByDescending(x => x.DisplayName)]

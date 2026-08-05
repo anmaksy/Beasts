@@ -27,13 +27,14 @@ public partial class Beasts
 
     private void DrawInGameBeasts()
     {
+        var enabledPaths = Settings.Beasts.Select(b => b.Path).ToHashSet();
+
         foreach (var trackedBeast in _trackedBeasts
                      .Select(beast => new { Positioned = beast.Value.GetComponent<Positioned>(), beast.Value.Metadata })
                      .Where(beast => beast.Positioned != null))
         {
-            var beast = BeastsDatabase.AllBeasts.First(beast => trackedBeast.Metadata == beast.Path);
-
-            if (Settings.Beasts.All(b => b.Path != beast.Path)) continue;
+            if (!BeastsDatabase.ByPath.TryGetValue(trackedBeast.Metadata, out var beast)) continue;
+            if (!enabledPaths.Contains(beast.Path)) continue;
             var pos = GameController.IngameState.Data.ToWorldWithTerrainHeight(trackedBeast.Positioned.GridPosition);
             Graphics.DrawText(beast.DisplayName, GameController.IngameState.Camera.WorldToScreen(pos), Color.White,
                 FontAlign.Center);
@@ -113,9 +114,13 @@ public partial class Beasts
             ImGui.TableSetupColumn("Price", ImGuiTableColumnFlags.WidthFixed, 48);
             ImGui.TableSetupColumn("Beast");
 
+            var enabledBeastsByPath = Settings.Beasts
+                .GroupBy(b => b.Path)
+                .ToDictionary(g => g.Key, g => g.First());
+
             foreach (var beastMetadata in _trackedBeasts
                          .Select(trackedBeast => trackedBeast.Value)
-                         .Select(beast => Settings.Beasts.Find(b => b.Path == beast.Metadata))
+                         .Select(beast => enabledBeastsByPath.GetValueOrDefault(beast.Metadata))
                          .Where(beastMetadata => beastMetadata != null))
             {
                 ImGui.TableNextRow();

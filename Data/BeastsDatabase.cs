@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Beasts.Data;
 
@@ -103,7 +104,7 @@ public static class BeastsDatabase
         },
         new Beast
         {
-            DisplayName = "Craicic Chimeral",
+            DisplayName = "Craicic Croaker",
             Path = "Metadata/Monsters/LeagueBestiary/GemFrogBestiary",
             Crafts =
             [
@@ -373,10 +374,10 @@ public static class BeastsDatabase
         new Beast
         {
             DisplayName = "Fenumal Queen",
-            Path = "Create a Unique: Staff",
+            Path = "Metadata/Monsters/LeagueBestiary/InsectSpawnerBestiary",
             Crafts =
             [
-                "Metadata/Monsters/LeagueBestiary/InsectSpawnerBestiary",
+                "Create a Unique: Staff",
                 "Modify Mods on an Item: Add a Mod to a Redeemer Item"
             ]
         },
@@ -562,4 +563,5 @@ public static class BeastsDatabase
         }
     };
 
+    public static readonly Dictionary<string, Beast> ByPath = AllBeasts.ToDictionary(beast => beast.Path);
 }
