@@ -16,6 +16,7 @@ public class BeastsSettings : ISettings
     public List<Beast> Beasts { get; set; } = new();
     public Dictionary<string, float> BeastPrices { get; set; } = new();
     public DateTime LastUpdate { get; set; } = DateTime.MinValue;
+    public string LastUpdateLeague { get; set; } = "";
 
     public BeastsSettings()
     {
@@ -115,7 +116,13 @@ public class BeastsSettings : ISettings
         {
             DrawDelegate = () =>
             {
-                ImGui.Text("PoeNinja prices as of:");
+                if (LastUpdate == DateTime.MinValue)
+                {
+                    ImGui.Text("PoeNinja prices have not been fetched yet");
+                    return;
+                }
+
+                ImGui.Text($"PoeNinja prices for {LastUpdateLeague} as of:");
                 ImGui.SameLine();
                 ImGui.Text(LastUpdate.ToString("HH:mm:ss"));
             }
@@ -131,6 +138,8 @@ public class BeastsSettings : ISettings
     public ToggleNode ShowCapturedBeastsInStash { get; set; } = new ToggleNode(true);
     
     public ToggleNode ShowBestiaryPanel { get; set; } = new ToggleNode(true);
+
+    public ListNode League { get; set; } = new ListNode();
 
     public ButtonNode FetchBeastPrices { get; set; } = new ButtonNode();
 
